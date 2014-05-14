@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// @TODO: refactor to embedded structures
 type YaDictResult struct {
 	Def []YaDef `json:"def"`
 }
@@ -22,8 +23,10 @@ type YaTr struct {
 	Text string `json:"text"`
 }
 
-const YA_API_URI = "https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=%s&lang=%s&text=%s"
-const YA_API_KEY = "dict.1.1.20140512T122957Z.549af1de13649236.74bbc11e0fa7625166dd95f21b1ff17838df2c03"
+const YA_API_URI = "https://dictionary.yandex.net" +
+	"/api/v1/dicservice.json/lookup?key=%s&lang=%s&text=%s"
+const YA_API_KEY = "dict.1.1.20140512T122957Z.549af1de13649236." +
+	"74bbc11e0fa7625166dd95f21b1ff17838df2c03"
 
 type YandexProvider struct {
 	ApiKey   string
@@ -37,7 +40,8 @@ func (y YandexProvider) Lookup(text string) (*LookupResult, error) {
 	}
 
 	if resp.Status != "200 OK" {
-		return nil, errors.New("expected HTTP status 200, received %s" + resp.Status)
+		return nil, errors.New(
+			"expected HTTP status 200, received %s" + resp.Status)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -46,10 +50,16 @@ func (y YandexProvider) Lookup(text string) (*LookupResult, error) {
 	}
 
 	dictResult := YaDictResult{}
-
 	json.Unmarshal(body, &dictResult)
 
-	fmt.Println(dictResult)
+	lookupResult := LookupResult{
+		Transcript: dictResult.Def[0].Transcript,
+		Meanings:   make([]string, len(dictResult.Def)),
+	}
 
-	return nil, nil
+	for i, d := range dictResult.Def {
+		lookupResult.Meanings[i] = d.Translation[0].Text
+	}
+
+	return &lookupResult, nil
 }
