@@ -10,15 +10,12 @@ type LookupResult struct {
 }
 
 func main() {
-	//ya := YandexProvider{
-	//    ApiKey:   YA_API_KEY,
-	//    LangPair: "en-ru",
-	//}
+	ya := NewYandexProvider("en-ru", "")
+	anki := NewAnkiAccount("~/.runki/creds")
 
-	anki, _ := AnkiWebLogin("login", "pass")
+	anki.WebLogin("s.seletskiy@gmail.com", "zmxncbv13")
 	fmt.Println(anki)
 
-	//fmt.Println(anki.Search("eloquent"))
 	fmt.Println(anki.Add("test", "eloquent", "a"))
 
 	return

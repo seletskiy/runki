@@ -28,42 +28,52 @@ const ANKI_EDITOR_URI = ANKI_HOST + "/edit/"
 var ANKI_RE_MID = regexp.MustCompile(`mid":\s*"(\d+)"`)
 var ANKI_RE_ITEM = regexp.MustCompile(`(?s:mitem3.*?<td>([^/]+))`)
 
-func AnkiWebLogin(login, password string) (*AnkiAccount, error) {
+func NewAnkiAccount(filename string) *AnkiAccount {
+	return &AnkiAccount{}
+}
+
+func (a AnkiAccount) Load(filename string) {
+
+}
+
+func (a AnkiAccount) WebLogin(login, password string) error {
 	ankiurl, _ := url.Parse(ANKI_HOST)
 
 	jar, _ := cookiejar.New(nil)
-	client := http.Client{Jar: jar}
+	a.http = &http.Client{Jar: jar}
 
-	_, err := client.Get(ANKI_HOST)
-	_, err = client.PostForm(ANKI_LOGIN_URI,
+	resp, err := a.http.Get(ANKI_HOST)
+	_, err = a.http.PostForm(ANKI_LOGIN_URI,
 		url.Values{
 			"username": {login},
 			"password": {password},
 		})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(jar.Cookies(ankiurl)) == 0 {
-		return nil, errors.New("failed to login to anki web")
+		return errors.New("failed to login to anki web")
 	}
 
-	resp, _ := client.Get(ANKI_EDITOR_URI)
+	resp, _ = a.http.Get(ANKI_EDITOR_URI)
 	body, _ := ioutil.ReadAll(resp.Body)
 	midMatch := ANKI_RE_MID.FindStringSubmatch(string(body))
 
 	if len(midMatch) < 2 {
-		return nil, errors.New("failed to get mid from anki web")
+		return errors.New("failed to get mid from anki web")
 	}
 
-	return &AnkiAccount{&client, midMatch[1]}, nil
+	a.mid = midMatch[1]
+
+	return nil
 }
 
-func (a AnkiAccount) Search(search_text string) (bool, error) {
+func (a AnkiAccount) Search(searchText string) (bool, error) {
 	resp, err := a.http.PostForm(ANKI_SEARCH_URI,
 		url.Values{
-			"keyword":   {search_text},
+			"keyword":   {searchText},
 			"submitted": {"1"},
 		})
 
@@ -75,7 +85,7 @@ func (a AnkiAccount) Search(search_text string) (bool, error) {
 
 	items := ANKI_RE_ITEM.FindAllStringSubmatch(string(body), -1)
 	for _, m := range items {
-		if strings.TrimSpace(m[1]) == search_text {
+		if strings.TrimSpace(m[1]) == searchText {
 			return true, nil
 		}
 	}
@@ -102,7 +112,6 @@ func (a AnkiAccount) Add(deck, text, translation string) error {
 	}
 
 	bodyStr := string(body)
-
 	if bodyStr != "1" {
 		return errors.New("unexpected answer from anki web while add: " +
 			bodyStr)
