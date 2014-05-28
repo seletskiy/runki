@@ -1,7 +1,12 @@
 package main
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 )
 
 type LookupResult struct {
@@ -9,14 +14,61 @@ type LookupResult struct {
 	Meanings   []string
 }
 
+var lang = flag.String("lang", "en-ru", "translation direction")
+var creds = flag.String("creds", os.Getenv("HOME")+"/.runki/creds",
+	"path to *creds file")
+var user = flag.String("user", "", "ankiweb username")
+var pass = flag.String("pass", "", "ankiweb password")
+var deck = flag.String("deck", "english", "deck to add")
+
 func main() {
-	ya := NewYandexProvider("en-ru", "")
-	anki := NewAnkiAccount("~/.runki/creds")
+	flag.Parse()
 
-	anki.WebLogin("s.seletskiy@gmail.com", "zmxncbv13")
-	fmt.Println(anki)
+	ya := NewYandexProvider(*lang, "")
+	anki := NewAnkiAccount()
 
-	fmt.Println(anki.Add("test", "eloquent", "a"))
+	err := anki.Load(*creds)
+	if err != nil {
+		log.Println("can't read from creds file:", err)
+		err := anki.WebLogin(*user, *pass)
+		if err != nil {
+			log.Fatalf("can't login to ankiweb", err.Error())
+		}
+	}
+
+	err = anki.Save(*creds)
+	if err != nil {
+		log.Fatalf("can't save creds file:", err.Error())
+	}
+
+	stdin := bufio.NewReader(os.Stdin)
+	for {
+		line, err := stdin.ReadString('\n')
+		if err != nil {
+			break
+		}
+
+		unknown := strings.TrimSpace(line)
+
+		lookup, err := ya.Lookup(unknown)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+
+		translation := "[" + lookup.Transcript + "] " +
+			strings.Join(lookup.Meanings, ", ")
+
+		fmt.Println(translation)
+
+		found, err := anki.Search(unknown)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+
+		if !found {
+			anki.Add(*deck, unknown, translation)
+		}
+	}
 
 	return
 }
