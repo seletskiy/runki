@@ -7,6 +7,10 @@ Manage Anki flashcards without a friction.
 Typical usage
 -------------
 
+`go get github.com/seletskiy/runki` it first.
+
+Make sure, that after `go get` command `runki` is available in your shell.
+
 Create executable file with following contents (named `add-anki-word`):
 ```bash
 #!/bin/bash
