@@ -79,7 +79,10 @@ func main() {
 
 		if !found {
 			foundStreak = 0
-			anki.Add(*deck, unknown, translation)
+			err = anki.Add(*deck, unknown, translation)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
 		} else {
 			foundStreak += 1
 		}
