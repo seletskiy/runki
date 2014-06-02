@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -14,17 +15,53 @@ type LookupResult struct {
 	Meanings   []string
 }
 
-var lang = flag.String("lang", "en-ru", "translation direction")
-var creds = flag.String("creds", os.Getenv("HOME")+"/.runki/creds",
-	"path to creds file")
-var user = flag.String("user", "", "ankiweb username")
-var pass = flag.String("pass", "", "ankiweb password")
-var deck = flag.String("deck", "english", "deck to add")
-var dry = flag.Bool("dry", false, "dry run (do not alter anki db)")
-var cut = flag.Int("cut", 0, "stop processing after N non-unique words found")
+func loadConfig(path string) []string {
+	args := make([]string, 0)
+
+	conf, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Println(err)
+		return args
+	}
+
+	log.Println("command line loaded from", path)
+
+	confLines := strings.Split(string(conf), "\n")
+	for _, line := range confLines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		args = append(args, line)
+	}
+
+	return args
+}
 
 func main() {
-	flag.Parse()
+	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	lang := flags.String("lang", "en-ru",
+		"translation direction")
+	creds := flags.String("creds", os.Getenv("HOME")+"/.runki/creds",
+		"path to creds file")
+	user := flags.String("user", "",
+		"ankiweb username")
+	pass := flags.String("pass", "",
+		"ankiweb password")
+	deck := flags.String("deck", "english",
+		"deck to add")
+	dry := flags.Bool("dry", false,
+		"dry run (do not alter anki db)")
+	cut := flags.Int("cut", 0,
+		"stop processing after N non-unique words found")
+	silent := flags.Bool("s", false,
+		"silent, do not print translation before uniq check")
+
+	conf := loadConfig(os.Getenv("HOME") + "/.runki/runkirc")
+
+	flags.Parse(append(conf, os.Args[1:]...))
 
 	ya := NewYandexProvider(*lang, "", 2)
 	anki := NewAnkiAccount()
@@ -37,6 +74,8 @@ func main() {
 			log.Fatalf("can't login to ankiweb", err.Error())
 		}
 	}
+
+	log.Println("using creds file", *creds, "(remove it if auth fail)")
 
 	err = anki.Save(*creds)
 	if err != nil {
@@ -59,14 +98,19 @@ func main() {
 		}
 
 		if lookup == nil {
-			fmt.Println("<" + unknown + ": no translation found>")
+			if !*silent {
+				fmt.Println("<" + unknown + ": no translation found>")
+			}
+
 			continue
 		}
 
 		translation := "[" + lookup.Transcript + "] " +
 			strings.Join(lookup.Meanings, ", ")
 
-		fmt.Println(translation)
+		if !*silent {
+			fmt.Println(translation)
+		}
 
 		if *dry {
 			continue
@@ -78,6 +122,10 @@ func main() {
 		}
 
 		if !found {
+			if *silent {
+				fmt.Println(translation)
+			}
+
 			foundStreak = 0
 			err = anki.Add(*deck, unknown, translation)
 			if err != nil {
