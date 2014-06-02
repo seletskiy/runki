@@ -66,7 +66,7 @@ that are already added to Anki. `tac` and `--cut` combination allows you to
 sync words from Kindle in seamless way just running one single command again
 and again.
 
-Kundle + udev
+Kindle + udev
 -------------
 
 Ok, let's go deeper. I want to sync words that I highlight on the kindle
