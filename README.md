@@ -66,6 +66,7 @@ that are already added to Anki. `tac` and `--cut` combination allows you to
 sync words from Kindle in seamless way just running one single command again
 and again.
 
+
 Kindle + udev
 -------------
 
@@ -83,3 +84,27 @@ It will add new words directly to Anki and show nice notification about how
 many new words has been added to.
 
 Example of this `kindle-to-anki` program can be found there: https://github.com/seletskiy/dotfiles/blob/1c9da6d347cc658c9d6d177a61ef94423a3c36d4/bin/kindle-to-anki
+
+
+Config
+------
+
+All command line arguments can be stored in configuration file called
+`~/.runki/runkirc`.
+
+Format is simple: one command line argument per line.
+
+Useful for specifying AnkiWeb username and password, like this:
+```
+-user
+    <USERNAME>
+
+-pass
+    <PASSWORD>
+
+-deck
+    <DECKNAME>
+```
+
+All further invokations of `runki` can be done without specifying user/pass/deck
+arguments.
