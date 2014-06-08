@@ -27,7 +27,7 @@ const ANKI_SEARCH_URI = ANKI_HOST + "/search/"
 const ANKI_ADD_URI = ANKI_HOST + "/edit/save"
 const ANKI_EDITOR_URI = ANKI_HOST + "/edit/"
 
-var ANKI_RE_MID = regexp.MustCompile(`mid":\s*"(\d+)"`)
+var ANKI_RE_MID = regexp.MustCompile(`mid":\s*"?(\d+)`)
 var ANKI_RE_ITEM = regexp.MustCompile(`(?s:mitem3.*?<td>([^/]+))`)
 
 func NewAnkiAccount() *AnkiAccount {
@@ -115,7 +115,7 @@ func (a *AnkiAccount) WebLogin(login, password string) error {
 	midMatch := ANKI_RE_MID.FindStringSubmatch(string(body))
 
 	if len(midMatch) < 2 {
-		return errors.New("failed to get mid from anki web")
+		return errors.New("failed to get mid authentification value from anki web")
 	}
 
 	a.mid = midMatch[1]
@@ -152,12 +152,13 @@ func (a *AnkiAccount) Add(deck, text, translation string) error {
 		"", // tag is unused
 	})
 
-	resp, err := a.http.PostForm(ANKI_ADD_URI,
-		url.Values{
-			"data": {string(data)},
-			"mid":  {a.mid},
-			"deck": {deck},
-		})
+	urlValues := url.Values{
+		"data": {string(data)},
+		"mid":  {a.mid},
+		"deck": {deck},
+	}
+
+	resp, err := a.http.PostForm(ANKI_ADD_URI, urlValues)
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
