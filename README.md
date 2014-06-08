@@ -1,36 +1,83 @@
 runki
 =====
 
-Manage Anki flashcards without a friction.
+Ankiweb.net console client. Manage Anki flashcards without a friction.
 
 
-Typical usage
+Installation
+------------
+
+Use aur package https://aur.archlinux.org/packages/runki
+
+For other systems you can install runki through `go get`:
+
+  1. Install go.
+  2. Execute `go get github.com/seletskiy/runki`
+
+
+Configuration
 -------------
 
-`go get github.com/seletskiy/runki` it first.
+All command line arguments can be stored in configuration file called
+`~/.runki/runkirc` with following format:
+```
+-[option [value]]
+```
 
-Make sure, that after `go get` command `runki` is available in your shell.
+Example:
+```
+-user user@example.com
+-pass password
+-deck english
+```
 
-Create executable file with following contents (named `add-anki-word`):
+See `./runki --help` for complete arguments list:
+
+Usage
+-----
+
+Add card to ankiweb.net:
+```
+echo test | runki
+# or
+echo test | runki --user=<USERNAME> --pass=<PASSWORD> --deck=<DECKNAME>
+```
+
+Add list of cards to ankiweb.net:
+```
+cat file | runki
+```
+
+Add clipboard contents to ankiweb.net:
+```
+echo xclip -selection clipboard -o | runki
+```
+
+Add current selection to ankiweb.net:
+```
+echo xclip -o | runki
+```
+
+Add current selection to ankiweb.net and show translation:
+```
+notify-send "$(echo $(xclip -o) | runki"
+```
+
+
+Add word by shortcut (i3 window manager)
+----------------------------------------
+
+Create file ~/bin/add-anki-word with following contents:
 ```bash
 #!/bin/bash
 
-notify-send "$(echo $(xclip -o) \
-    | runki --user=<USERNAME> --pass=<PASSWORD> --deck=<DECKNAME>)"
+notify-send "$(echo $(xclip -o) | runki)"
 ```
 
-Then create shortcut in your window manager. i3, for example:
+Execute following command:
 ```
-bindsym $mod+Escape exec add-anki-word
+echo "bindsym \$mod+Escape exec add-anki-word" >> ~/.i3/config && i3wm-msg reload
 ```
-
-Reload configuration and it should work.
-
-So, you just select the word, press shortcut ($mod+Escape in example), and get
-word translation and transcription in popup. What will you see in popup will be
-added to specified <DECKNAME> in your Anki account.
-
-Every word will be checked on uniqueness prior to be added.
 
 
 Batch usage
@@ -85,26 +132,11 @@ many new words has been added to.
 
 Example of this `kindle-to-anki` program can be found there: https://github.com/seletskiy/dotfiles/blob/1c9da6d347cc658c9d6d177a61ef94423a3c36d4/bin/kindle-to-anki
 
-
-Config
-------
-
-All command line arguments can be stored in configuration file called
-`~/.runki/runkirc`.
-
-Format is simple: one command line argument per line.
-
-Useful for specifying AnkiWeb username and password, like this:
-```
--user
-    <USERNAME>
-
--pass
-    <PASSWORD>
-
--deck
-    <DECKNAME>
-```
-
 All further invokations of `runki` can be done without specifying user/pass/deck
 arguments.
+
+
+VERSION
+-------
+
+0.0.1
