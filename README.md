@@ -45,7 +45,7 @@ echo test | runki --user=<USERNAME> --pass=<PASSWORD> --deck=<DECKNAME>
 
 Add list of cards to ankiweb.net:
 ```
-cat file | runki
+cat words-list | runki
 ```
 
 Add clipboard contents to ankiweb.net:
@@ -80,19 +80,8 @@ echo "bindsym \$mod+Escape exec add-anki-word" >> ~/.i3/config && i3wm-msg reloa
 ```
 
 
-Batch usage
------------
-
-Just pipe words from some source to `runki`, one word/phrase per line. Like
-this:
-
-```bash
-cat words-list.txt | runki
-```
-
-
-Kindle usage
-------------
+Kindle
+------
 
 It is possible to learn foreign words directly from Kindle. When you encounter
 unknown word, just tap on it, then select "Highlight". All this highlights will
