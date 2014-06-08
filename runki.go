@@ -39,26 +39,104 @@ func loadConfig(path string) []string {
 func main() {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	lang := flags.String("lang", "en-ru",
-		"translation direction")
-	creds := flags.String("creds", os.Getenv("HOME")+"/.runki/creds",
+	help := flags.Bool("help", false, "display help")
+	lang := flags.String("lang", "en-ru", "translation direction")
+	creds := flags.String("creds", os.Getenv("HOME")+"/.config/runki/creds",
 		"path to creds file")
-	user := flags.String("user", "",
-		"ankiweb username")
-	pass := flags.String("pass", "",
-		"ankiweb password")
-	deck := flags.String("deck", "english",
-		"deck to add")
-	dry := flags.Bool("dry", false,
-		"dry run (do not alter anki db)")
-	cut := flags.Int("cut", 0,
-		"stop processing after N non-unique words found")
-	silent := flags.Bool("s", false,
-		"silent, do not print translation before uniq check")
+	user := flags.String("user", "", "ankiweb username")
+	pass := flags.String("pass", "", "ankiweb password")
+	deck := flags.String("deck", "Default", "deck to add")
+	dry := flags.Bool("dry", false, "dry run (do not alter anki db)")
+	cut := flags.Int("cut", 0, "stop processing after N non-unique words found")
+	silent := flags.Bool("silent", false, "silent, do not print translation " +
+		"before uniq check")
 
-	conf := loadConfig(os.Getenv("HOME") + "/.runki/runkirc")
+	conf := loadConfig(os.Getenv("HOME") + "/.config/runki/runkirc")
 
 	flags.Parse(append(conf, os.Args[1:]...))
+
+	if *help {
+		displayHelp()
+		return
+	}
+
+	addCard(lang, creds, user, pass, deck, dry, cut, silent)
+}
+
+func displayHelp() {
+	fmt.Println(`
+NAME
+	anki - ankiweb and yandex-dictionary client. Provides cli interface for
+	adding word and translation to htt://ankiweb.net.
+
+SYNOPSIS
+	runki [--lang LANG] [--creds CREDS] [--user USER] [--pass PASS]
+		[--deck DECK] [--dry] [--cut CUT] [--silent] [--help]
+
+DESCRIPTION
+	--lang
+		Translation direction; [from]-[to], for example en-ru; see
+		http://api.yandex.com/dictionary/doc/dg/reference/lookup.xml
+		for detailed description. Default: en-ru.
+
+	--creds
+		Creds file to cache cookies to. If you changed password or in case of
+		authentification failure, delete this file. Default: ~/.config/runki/creds.
+
+	--user
+		Your username to htt://ankiweb.net.
+
+	--pass
+		Your password to htt://ankiweb.net.
+
+	--deck
+		To add card to. Default: Default.
+
+	--dry
+		Do not add card, just show translation.
+
+	--cut
+		Specifies how many duplications can be found before stopping input
+		processing. If zero - dont process without stops. Default: 0
+
+	--silent
+		Do not print messages.
+
+	--help
+		Display this help.
+
+	All options can be red from ~/.config/runki/runkirc.
+
+EXAMPLES
+	# add test card with default settings
+	echo test | runki
+
+	# add test card with user and password
+	echo test | runki --user user@example.com --password PASSWORD
+
+	# ~/.config/runki/runkirc
+	-user
+		user@example.com
+
+	-password
+		PASSWORD
+
+SEE ALSO
+	http://ankiweb.net
+	http://api.yandex.com/dictionary/
+	https://github.com/seletskiy/runki
+
+AUTHORS
+	Stanislav Seletskiy
+	Leonid Shagabutdinov
+
+VERSION
+	0.0.1
+`)
+}
+
+func addCard(lang *string, creds *string, user *string, pass *string,
+	deck *string, dry *bool, cut *int, silent *bool) {
 
 	ya := NewYandexProvider(*lang, "", 2)
 	anki := NewAnkiAccount()
