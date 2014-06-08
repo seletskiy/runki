@@ -20,11 +20,8 @@ func loadConfig(path string) []string {
 
 	conf, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Println(err)
 		return args
 	}
-
-	log.Println("command line loaded from", path)
 
 	confLines := strings.Split(string(conf), "\n")
 	for _, line := range confLines {
@@ -74,8 +71,6 @@ func main() {
 			log.Fatalf("can't login to ankiweb", err.Error())
 		}
 	}
-
-	log.Println("using creds file", *creds, "(remove it if auth fail)")
 
 	err = anki.Save(*creds)
 	if err != nil {
@@ -140,6 +135,4 @@ func main() {
 			break
 		}
 	}
-
-	return
 }
