@@ -39,7 +39,8 @@ func loadConfig(path string) []string {
 func main() {
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	help := flags.Bool("help", false, "display help")
+	flags.Usage = displayHelp
+
 	lang := flags.String("lang", "en-ru", "translation direction")
 	creds := flags.String("creds", os.Getenv("HOME")+"/.config/runki/creds",
 		"path to creds file")
@@ -48,17 +49,12 @@ func main() {
 	deck := flags.String("deck", "Default", "deck to add")
 	dry := flags.Bool("dry", false, "dry run (do not alter anki db)")
 	cut := flags.Int("cut", 0, "stop processing after N non-unique words found")
-	silent := flags.Bool("silent", false, "silent, do not print translation " +
+	silent := flags.Bool("silent", false, "silent, do not print translation "+
 		"before uniq check")
 
 	conf := loadConfig(os.Getenv("HOME") + "/.config/runki/runkirc")
 
 	flags.Parse(append(conf, os.Args[1:]...))
-
-	if *help {
-		displayHelp()
-		return
-	}
 
 	addCard(lang, creds, user, pass, deck, dry, cut, silent)
 }
@@ -67,7 +63,7 @@ func displayHelp() {
 	fmt.Println(`
 NAME
 	anki - ankiweb and yandex-dictionary client. Provides cli interface for
-	adding word and translation to htt://ankiweb.net.
+	adding word and translation to http://ankiweb.net.
 
 SYNOPSIS
 	runki [--lang LANG] [--creds CREDS] [--user USER] [--pass PASS]
