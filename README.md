@@ -127,7 +127,7 @@ many new words has been added to.
 
 Example of this `kindle-to-anki` program can be found there: https://github.com/seletskiy/dotfiles/blob/1c9da6d347cc658c9d6d177a61ef94423a3c36d4/bin/kindle-to-anki
 
-All further invokations of `runki` can be done without specifying user/pass/deck
+All further invocations of `runki` can be done without specifying user/pass/deck
 arguments.
 
 
