@@ -7,7 +7,7 @@ Ankiweb.net console client. Manage Anki flashcards without a friction.
 Installation
 ------------
 
-Use aur package https://aur.archlinux.org/packages/runki
+Use AUR package https://aur.archlinux.org/packages/runki
 
 For other systems you can install runki through `go get`:
 
@@ -19,7 +19,7 @@ Configuration
 -------------
 
 All command line arguments can be stored in configuration file called
-`~/.runki/runkirc` with following format:
+`~/.config/runki/runkirc` with following format:
 ```
 -[option
   [value]]
@@ -37,7 +37,10 @@ Example:
   english
 ```
 
-See `./runki --help` for complete arguments list:
+All further invocations of `runki` can be done without specifying user/pass/deck
+arguments.
+
+See `./runki --help` for complete arguments list.
 
 Usage
 -----
@@ -82,8 +85,11 @@ notify-send "$(echo $(xclip -o) | runki)"
 
 Execute following command:
 ```
-echo "bindsym \$mod+Escape exec add-anki-word" >> ~/.i3/config && i3wm-msg reload
+echo "bindsym \$mod+Escape exec add-anki-word" >> ~/.i3/config && i3-msg reload
 ```
+
+Now it's possible to highlight unknown word in the browser and press only one
+shortcut to get word be added into your Anki account.
 
 
 Kindle
@@ -112,8 +118,8 @@ and again.
 Kindle + udev
 -------------
 
-Ok, let's go deeper. I want to sync words that I highlight on the kindle
-automatically when I connect kindle to the computer.
+Ok, let's go deeper. One probably want to sync words that I highlight on the kindle
+automatically when one connect kindle to the computer.
 
 So, we need to create udev rule like this:
 
@@ -121,14 +127,11 @@ So, we need to create udev rule like this:
 ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_VENDOR_ID}=="1949", RUN+="/usr/bin/su <USERNAME> -lc 'DISPLAY=:0 kindle-to-anki $env{DEVNAME}'"
 ```
 
-So, after kindle is connected, `kindle-to-anki` program will have to be runned.
+After kindle is connected, `kindle-to-anki` program will have to be runned.
 It will add new words directly to Anki and show nice notification about how
 many new words has been added to.
 
 Example of this `kindle-to-anki` program can be found there: https://github.com/seletskiy/dotfiles/blob/1c9da6d347cc658c9d6d177a61ef94423a3c36d4/bin/kindle-to-anki
-
-All further invocations of `runki` can be done without specifying user/pass/deck
-arguments.
 
 
 VERSION
