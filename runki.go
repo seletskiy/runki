@@ -41,15 +41,15 @@ func main() {
 
 	flags.Usage = displayHelp
 
-	lang := flags.String("lang", "en-ru", "translation direction")
-	creds := flags.String("creds", os.Getenv("HOME")+"/.config/runki/creds",
+	lang := *flags.String("lang", "en-ru", "translation direction")
+	creds := *flags.String("creds", os.Getenv("HOME")+"/.config/runki/creds",
 		"path to creds file")
-	user := flags.String("user", "", "ankiweb username")
-	pass := flags.String("pass", "", "ankiweb password")
-	deck := flags.String("deck", "Default", "deck to add")
-	dry := flags.Bool("dry", false, "dry run (do not alter anki db)")
-	cut := flags.Int("cut", 0, "stop processing after N non-unique words found")
-	silent := flags.Bool("silent", false, "silent, do not print translation "+
+	user := *flags.String("user", "", "ankiweb username")
+	pass := *flags.String("pass", "", "ankiweb password")
+	deck := *flags.String("deck", "Default", "deck to add")
+	dry := *flags.Bool("dry", false, "dry run (do not alter anki db)")
+	cut := *flags.Int("cut", 0, "stop processing after N non-unique words found")
+	silent := *flags.Bool("silent", false, "silent, do not print translation "+
 		"before uniq check")
 
 	conf := loadConfig(os.Getenv("HOME") + "/.config/runki/runkirc")
@@ -80,10 +80,10 @@ DESCRIPTION
 		authentification failure, delete this file. Default: ~/.config/runki/creds.
 
 	--user
-		Your username to htt://ankiweb.net.
+		Your username to http://ankiweb.net.
 
 	--pass
-		Your password to htt://ankiweb.net.
+		Your password to http://ankiweb.net.
 
 	--deck
 		To add card to. Default: Default.
@@ -131,22 +131,22 @@ VERSION
 `)
 }
 
-func addCard(lang *string, creds *string, user *string, pass *string,
-	deck *string, dry *bool, cut *int, silent *bool) {
+func addCard(lang string, creds string, user string, pass string,
+	deck string, dry bool, cut int, silent bool) {
 
-	ya := NewYandexProvider(*lang, "", 2)
+	ya := NewYandexProvider(lang, "", 2)
 	anki := NewAnkiAccount()
 
-	err := anki.Load(*creds)
+	err := anki.Load(creds)
 	if err != nil {
 		log.Println("can't read from creds file:", err)
-		err := anki.WebLogin(*user, *pass)
+		err := anki.WebLogin(user, pass)
 		if err != nil {
 			log.Fatalf("can't login to ankiweb", err.Error())
 		}
 	}
 
-	err = anki.Save(*creds)
+	err = anki.Save(creds)
 	if err != nil {
 		log.Fatalf("can't save creds file:", err.Error())
 	}
@@ -167,7 +167,7 @@ func addCard(lang *string, creds *string, user *string, pass *string,
 		}
 
 		if lookup == nil {
-			if !*silent {
+			if !silent {
 				fmt.Println("<" + unknown + ": no translation found>")
 			}
 
@@ -177,11 +177,11 @@ func addCard(lang *string, creds *string, user *string, pass *string,
 		translation := "[" + lookup.Transcript + "] " +
 			strings.Join(lookup.Meanings, ", ")
 
-		if !*silent {
+		if !silent {
 			fmt.Println(translation)
 		}
 
-		if *dry {
+		if dry {
 			continue
 		}
 
@@ -191,22 +191,21 @@ func addCard(lang *string, creds *string, user *string, pass *string,
 		}
 
 		if !found {
-			if *silent {
+			if silent {
 				fmt.Println(translation)
 			}
 
 			foundStreak = 0
-			err = anki.Add(*deck, unknown, translation)
+			err = anki.Add(deck, unknown, translation)
 			if err != nil {
-				log.Fatalln(err.Error())
+				log.Fatal(err)
 			}
 		} else {
 			foundStreak += 1
 		}
 
-		if foundStreak >= *cut && *cut > 0 {
-			log.Fatalf("stopping after %d consequent non-unique words", *cut)
-			break
+		if foundStreak >= cut && cut > 0 {
+			log.Fatalf("stopping after %d consequent non-unique words", cut)
 		}
 	}
 }
