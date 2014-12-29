@@ -21,14 +21,18 @@ type AnkiAccount struct {
 	mid  string
 }
 
-const ANKI_HOST = "https://ankiweb.net"
-const ANKI_LOGIN_URI = ANKI_HOST + "/account/login"
-const ANKI_SEARCH_URI = ANKI_HOST + "/search/"
-const ANKI_ADD_URI = ANKI_HOST + "/edit/save"
-const ANKI_EDITOR_URI = ANKI_HOST + "/edit/"
+const (
+	AnkiBaseUrl   = "https://ankiweb.net"
+	AnkiLoginUrl  = AnkiBaseUrl + "/account/login"
+	AnkiSearchUrl = AnkiBaseUrl + "/search/"
+	AnkiAddUrl    = AnkiBaseUrl + "/edit/save"
+	AnkiEditorUrl = AnkiBaseUrl + "/edit/"
+)
 
-var ANKI_RE_MID = regexp.MustCompile(`mid":\s*"?(\d+)`)
-var ANKI_RE_ITEM = regexp.MustCompile(`(?s:mitem3.*?<td>([^/]+))`)
+var (
+	reMid  = regexp.MustCompile(`mid":\s*"?(\d+)`)
+	reItem = regexp.MustCompile(`(?s:mitem3.*?<td>([^/]+))`)
+)
 
 func NewAnkiAccount() *AnkiAccount {
 	return &AnkiAccount{}
@@ -57,7 +61,7 @@ func (a *AnkiAccount) Load(filename string) error {
 		return err
 	}
 
-	ankiurl, _ := url.Parse(ANKI_HOST)
+	ankiurl, _ := url.Parse(AnkiBaseUrl)
 	jar.SetCookies(ankiurl, storedData.Cookies)
 
 	a.http = &http.Client{Jar: jar}
@@ -67,7 +71,7 @@ func (a *AnkiAccount) Load(filename string) error {
 }
 
 func (a *AnkiAccount) Save(filename string) error {
-	ankiurl, _ := url.Parse(ANKI_HOST)
+	ankiurl, _ := url.Parse(AnkiBaseUrl)
 	data, err := json.Marshal(struct {
 		Cookies []*http.Cookie
 		Mid     string
@@ -90,13 +94,13 @@ func (a *AnkiAccount) Save(filename string) error {
 }
 
 func (a *AnkiAccount) WebLogin(login, password string) error {
-	ankiurl, _ := url.Parse(ANKI_HOST)
+	ankiurl, _ := url.Parse(AnkiBaseUrl)
 
 	jar, _ := cookiejar.New(nil)
 	a.http = &http.Client{Jar: jar}
 
-	resp, err := a.http.Get(ANKI_HOST)
-	_, err = a.http.PostForm(ANKI_LOGIN_URI,
+	resp, err := a.http.Get(AnkiBaseUrl)
+	_, err = a.http.PostForm(AnkiLoginUrl,
 		url.Values{
 			"username": {login},
 			"password": {password},
@@ -110,21 +114,22 @@ func (a *AnkiAccount) WebLogin(login, password string) error {
 		return errors.New("failed to login to anki web")
 	}
 
-	resp, _ = a.http.Get(ANKI_EDITOR_URI)
+	resp, _ = a.http.Get(AnkiEditorUrl)
 	body, _ := ioutil.ReadAll(resp.Body)
-	midMatch := ANKI_RE_MID.FindStringSubmatch(string(body))
+	midMatch := reMid.FindSubmatch(body)
 
 	if len(midMatch) < 2 {
-		return errors.New("failed to get mid authentification value from anki web")
+		return errors.New(
+			"failed to get mid authentification value from anki web")
 	}
 
-	a.mid = midMatch[1]
+	a.mid = string(midMatch[1])
 
 	return nil
 }
 
 func (a *AnkiAccount) Search(searchText string) (bool, error) {
-	resp, err := a.http.PostForm(ANKI_SEARCH_URI,
+	resp, err := a.http.PostForm(AnkiSearchUrl,
 		url.Values{
 			"keyword":   {searchText},
 			"submitted": {"1"},
@@ -136,9 +141,9 @@ func (a *AnkiAccount) Search(searchText string) (bool, error) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	items := ANKI_RE_ITEM.FindAllStringSubmatch(string(body), -1)
+	items := reItem.FindAllSubmatch(body, -1)
 	for _, m := range items {
-		if strings.TrimSpace(m[1]) == searchText {
+		if strings.TrimSpace(string(m[1])) == searchText {
 			return true, nil
 		}
 	}
@@ -158,7 +163,7 @@ func (a *AnkiAccount) Add(deck, text, translation string) error {
 		"deck": {deck},
 	}
 
-	resp, err := a.http.PostForm(ANKI_ADD_URI, urlValues)
+	resp, err := a.http.PostForm(AnkiAddUrl, urlValues)
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
