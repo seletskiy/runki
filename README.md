@@ -21,26 +21,26 @@ Configuration
 All command line arguments can be stored in configuration file called
 `~/.config/runki/runkirc` with following format:
 ```
--[option
+--[option
   [value]]
 ```
 
 Example:
 ```
--user
+--user
   user@example.com
 
--pass
+--pass
   password
 
--deck
+--deck
   english
 ```
 
 All further invocations of `runki` can be done without specifying user/pass/deck
 arguments.
 
-See `./runki --help` for complete arguments list.
+See `runki --help` for complete arguments list.
 
 Usage
 -----
