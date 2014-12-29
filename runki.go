@@ -41,22 +41,22 @@ func main() {
 
 	flags.Usage = displayHelp
 
-	lang := *flags.String("lang", "en-ru", "translation direction")
-	creds := *flags.String("creds", os.Getenv("HOME")+"/.config/runki/creds",
+	lang := flags.String("lang", "en-ru", "translation direction")
+	creds := flags.String("creds", os.Getenv("HOME")+"/.config/runki/creds",
 		"path to creds file")
-	user := *flags.String("user", "", "ankiweb username")
-	pass := *flags.String("pass", "", "ankiweb password")
-	deck := *flags.String("deck", "Default", "deck to add")
-	dry := *flags.Bool("dry", false, "dry run (do not alter anki db)")
-	cut := *flags.Int("cut", 0, "stop processing after N non-unique words found")
-	silent := *flags.Bool("silent", false, "silent, do not print translation "+
+	user := flags.String("user", "", "ankiweb username")
+	pass := flags.String("pass", "", "ankiweb password")
+	deck := flags.String("deck", "Default", "deck to add")
+	dry := flags.Bool("dry", false, "dry run (do not alter anki db)")
+	cut := flags.Int("cut", 0, "stop processing after N non-unique words found")
+	silent := flags.Bool("silent", false, "silent, do not print translation "+
 		"before uniq check")
 
 	conf := loadConfig(os.Getenv("HOME") + "/.config/runki/runkirc")
 
 	flags.Parse(append(conf, os.Args[1:]...))
 
-	addCard(lang, creds, user, pass, deck, dry, cut, silent)
+	addCard(*lang, *creds, *user, *pass, *deck, *dry, *cut, *silent)
 }
 
 func displayHelp() {
@@ -140,9 +140,11 @@ func addCard(lang string, creds string, user string, pass string,
 	err := anki.Load(creds)
 	if err != nil {
 		log.Println("can't read from creds file:", err)
-		err := anki.WebLogin(user, pass)
-		if err != nil {
-			log.Fatalf("can't login to ankiweb", err.Error())
+		if !dry {
+			err := anki.WebLogin(user, pass)
+			if err != nil {
+				log.Fatalf("can't login to ankiweb", err.Error())
+			}
 		}
 	}
 
