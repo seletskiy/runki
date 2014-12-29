@@ -69,7 +69,7 @@ echo xclip -o | runki
 
 Add current selection to ankiweb.net and show translation:
 ```
-notify-send "$(echo $(xclip -o) | runki"
+notify-send "$(xclip -o | runki)"
 ```
 
 
@@ -118,7 +118,7 @@ and again.
 Kindle + udev
 -------------
 
-Ok, let's go deeper. One probably want to sync words that I highlight on the kindle
+Ok, let's go deeper. One probably want to sync words that was highlighted on the kindle
 automatically when one connect kindle to the computer.
 
 So, we need to create udev rule like this:
