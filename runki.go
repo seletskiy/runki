@@ -170,7 +170,8 @@ func addCard(lang string, creds string, user string, pass string,
 
 		if lookup == nil {
 			if !silent {
-				fmt.Println("<" + unknown + ": no translation found>")
+				fmt.Fprintf(os.Stderr,
+					"<" + unknown + ": no translation found>")
 			}
 
 			continue
