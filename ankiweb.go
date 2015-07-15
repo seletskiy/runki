@@ -38,12 +38,7 @@ func NewAnkiAccount() *AnkiAccount {
 	return &AnkiAccount{}
 }
 
-func (a *AnkiAccount) Load(filename string) error {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-
+func (a *AnkiAccount) Load(filename string) (shouldAuth bool, err error) {
 	storedData := struct {
 		Cookies []*http.Cookie
 		Mid     string
@@ -51,14 +46,30 @@ func (a *AnkiAccount) Load(filename string) error {
 		make([]*http.Cookie, 0),
 		"",
 	}
-	err = json.Unmarshal(data, &storedData)
+
+	fileExists := true
+
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			fileExists = false
+		} else {
+			return false, err
+		}
+	}
+
+	if fileExists {
+		err = json.Unmarshal(data, &storedData)
+		if err != nil {
+			return false, err
+		}
+	} else {
+		shouldAuth = true
 	}
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	ankiurl, _ := url.Parse(AnkiBaseUrl)
@@ -67,7 +78,7 @@ func (a *AnkiAccount) Load(filename string) error {
 	a.http = &http.Client{Jar: jar}
 	a.mid = storedData.Mid
 
-	return nil
+	return shouldAuth, nil
 }
 
 func (a *AnkiAccount) Save(filename string) error {

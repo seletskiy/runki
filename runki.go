@@ -137,14 +137,15 @@ func addCard(lang string, creds string, user string, pass string,
 	ya := NewYandexProvider(lang, "", 2)
 	anki := NewAnkiAccount()
 
-	err := anki.Load(creds)
+	shouldAuth, err := anki.Load(creds)
 	if err != nil {
-		log.Println("can't read from creds file:", err)
-		if !dry {
-			err := anki.WebLogin(user, pass)
-			if err != nil {
-				log.Fatalf("can't login to ankiweb", err.Error())
-			}
+		log.Fatalf("can't read from creds file:", err)
+	}
+
+	if !dry && shouldAuth {
+		err := anki.WebLogin(user, pass)
+		if err != nil {
+			log.Fatalf("can't login to ankiweb", err.Error())
 		}
 	}
 
@@ -171,7 +172,7 @@ func addCard(lang string, creds string, user string, pass string,
 		if lookup == nil {
 			if !silent {
 				fmt.Fprintf(os.Stderr,
-					"<" + unknown + ": no translation found>")
+					"<"+unknown+": no translation found>")
 			}
 
 			continue
