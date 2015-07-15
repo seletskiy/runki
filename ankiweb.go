@@ -47,24 +47,19 @@ func (a *AnkiAccount) Load(filename string) (shouldAuth bool, err error) {
 		"",
 	}
 
-	fileExists := true
-
 	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		if os.IsNotExist(err) {
-			fileExists = false
-		} else {
-			return false, err
-		}
-	}
-
-	if fileExists {
+	switch {
+	case err == nil:
 		err = json.Unmarshal(data, &storedData)
 		if err != nil {
 			return false, err
 		}
-	} else {
+
+	case os.IsNotExist(err):
 		shouldAuth = true
+
+	default:
+		return false, err
 	}
 
 	jar, err := cookiejar.New(nil)
