@@ -22,11 +22,12 @@ type AnkiAccount struct {
 }
 
 const (
-	AnkiBaseUrl   = "https://ankiweb.net"
-	AnkiLoginUrl  = AnkiBaseUrl + "/account/login"
-	AnkiSearchUrl = AnkiBaseUrl + "/search/"
-	AnkiAddUrl    = AnkiBaseUrl + "/edit/save"
-	AnkiEditorUrl = AnkiBaseUrl + "/edit/"
+	AnkiBaseUrl        = "https://ankiweb.net"
+	AnkiLoginUrl       = AnkiBaseUrl + "/account/login"
+	AnkiCheckCookieUrl = AnkiBaseUrl + "/account/checkCookie"
+	AnkiSearchUrl      = AnkiBaseUrl + "/search/"
+	AnkiAddUrl         = AnkiBaseUrl + "/edit/save"
+	AnkiEditorUrl      = AnkiBaseUrl + "/edit/"
 )
 
 var (
@@ -99,13 +100,23 @@ func (a *AnkiAccount) WebLogin(login, password string) error {
 	jar, _ := cookiejar.New(nil)
 	a.http = &http.Client{Jar: jar}
 
-	resp, err := a.http.Get(AnkiBaseUrl)
+	_, err := a.http.Get(AnkiBaseUrl)
+	if err != nil {
+		return err
+	}
+
 	_, err = a.http.PostForm(AnkiLoginUrl,
 		url.Values{
-			"username": {login},
-			"password": {password},
+			"username":  {login},
+			"password":  {password},
+			"submitted": {"1"},
 		})
 
+	if err != nil {
+		return err
+	}
+
+	_, err = a.http.Get(AnkiCheckCookieUrl)
 	if err != nil {
 		return err
 	}
@@ -114,7 +125,7 @@ func (a *AnkiAccount) WebLogin(login, password string) error {
 		return errors.New("failed to login to anki web")
 	}
 
-	resp, _ = a.http.Get(AnkiEditorUrl)
+	resp, _ := a.http.Get(AnkiEditorUrl)
 	body, _ := ioutil.ReadAll(resp.Body)
 	midMatch := reMid.FindSubmatch(body)
 
