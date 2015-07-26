@@ -108,13 +108,13 @@ EXAMPLES
 	echo test | runki
 
 	# add test card with user and password
-	echo test | runki --user user@example.com --password PASSWORD
+	echo test | runki --user user@example.com --pass PASSWORD
 
 	# ~/.config/runki/runkirc
-	-user
+	--user
 		user@example.com
 
-	-password
+	--pass
 		PASSWORD
 
 SEE ALSO
@@ -127,7 +127,7 @@ AUTHORS
 	Leonid Shagabutdinov
 
 VERSION
-	0.0.1
+	2.0
 `)
 }
 
