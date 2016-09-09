@@ -12,7 +12,20 @@ import (
 
 type LookupResult struct {
 	Transcript string
-	Meanings   []string
+	Meanings   []Meaning
+}
+
+type Meaning struct {
+	Translation string
+	References  []string
+}
+
+func (meaning *Meaning) String() string {
+	return fmt.Sprintf(
+		`%s (%s)`,
+		meaning.Translation,
+		strings.Join(meaning.References, `, `),
+	)
 }
 
 func loadConfig(path string) []string {
@@ -134,7 +147,7 @@ VERSION
 func addCard(lang string, creds string, user string, pass string,
 	deck string, dry bool, cut int, silent bool) {
 
-	ya := NewYandexProvider(lang, "", 2)
+	ya := NewYandexProvider(lang, "", UnlimitedSynonyms)
 	anki := NewAnkiAccount()
 
 	shouldAuth, err := anki.Load(creds)
@@ -178,8 +191,17 @@ func addCard(lang string, creds string, user string, pass string,
 			continue
 		}
 
-		translation := "[" + lookup.Transcript + "] " +
-			strings.Join(lookup.Meanings, ", ")
+		meanings := []string{}
+		for _, meaning := range lookup.Meanings {
+			meanings = append(meanings, meaning.String())
+		}
+
+		translation := ""
+		if lookup.Transcript != "" {
+			translation = "[" + lookup.Transcript + "] "
+		}
+
+		translation = translation + strings.Join(meanings, ", ")
 
 		if !silent {
 			fmt.Println(translation)

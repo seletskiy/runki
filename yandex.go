@@ -9,6 +9,10 @@ import (
 	"net/url"
 )
 
+const (
+	UnlimitedSynonyms = 0
+)
+
 // flags=4 is for morphological search
 const (
 	YandexApiUrlFormat = "https://dictionary.yandex.net" +
@@ -55,6 +59,9 @@ func (y YandexProvider) Lookup(text string) (*LookupResult, error) {
 			Ts  string
 			Tr  []struct {
 				Text string
+				Mean []struct {
+					Text string
+				}
 			}
 		}
 	}{}
@@ -70,15 +77,22 @@ func (y YandexProvider) Lookup(text string) (*LookupResult, error) {
 
 	lookupResult := LookupResult{
 		Transcript: dictResult.Def[0].Ts,
-		Meanings:   make([]string, 0),
 	}
 
 	for _, d := range dictResult.Def {
 		for j, tr := range d.Tr {
-			if j >= y.limitSynonyms {
+			if y.limitSynonyms > 0 && j >= y.limitSynonyms {
 				break
 			}
-			lookupResult.Meanings = append(lookupResult.Meanings, tr.Text)
+			references := []string{}
+			for _, ref := range tr.Mean {
+				references = append(references, ref.Text)
+			}
+
+			lookupResult.Meanings = append(lookupResult.Meanings, Meaning{
+				Translation: tr.Text,
+				References:  references,
+			})
 		}
 	}
 
