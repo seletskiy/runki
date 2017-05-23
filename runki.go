@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,13 +12,13 @@ import (
 )
 
 type LookupResult struct {
-	Transcript string
-	Meanings   []Meaning
+	Transcript string    `json:"transcript"`
+	Meanings   []Meaning `json:"meanings"`
 }
 
 type Meaning struct {
-	Translation string
-	References  []string
+	Translation string   `json:"translation"`
+	References  []string `json:"references"`
 }
 
 func (meaning *Meaning) String() string {
@@ -64,12 +65,13 @@ func main() {
 	cut := flags.Int("cut", 0, "stop processing after N non-unique words found")
 	silent := flags.Bool("silent", false, "silent, do not print translation "+
 		"before uniq check")
+	useJSON := flags.Bool("json", false, "output in json")
 
 	conf := loadConfig(os.Getenv("HOME") + "/.config/runki/runkirc")
 
 	flags.Parse(append(conf, os.Args[1:]...))
 
-	addCard(*lang, *creds, *user, *pass, *deck, *dry, *cut, *silent)
+	addCard(*lang, *creds, *user, *pass, *deck, *dry, *cut, *silent, *useJSON)
 }
 
 func displayHelp() {
@@ -145,7 +147,7 @@ VERSION
 }
 
 func addCard(lang string, creds string, user string, pass string,
-	deck string, dry bool, cut int, silent bool) {
+	deck string, dry bool, cut int, silent bool, useJSON bool) {
 
 	ya := NewYandexProvider(lang, "", UnlimitedSynonyms)
 	anki := NewAnkiAccount()
@@ -191,20 +193,31 @@ func addCard(lang string, creds string, user string, pass string,
 			continue
 		}
 
-		meanings := []string{}
-		for _, meaning := range lookup.Meanings {
-			meanings = append(meanings, meaning.String())
+		if useJSON {
+			encoder := json.NewEncoder(os.Stdout)
+			err = encoder.Encode(lookup)
+			if err != nil {
+				log.Fatalf(err.Error())
+			}
 		}
 
-		translation := ""
-		if lookup.Transcript != "" {
-			translation = "[" + lookup.Transcript + "] "
-		}
+		var translation string
+		if !useJSON || !dry {
+			meanings := []string{}
+			for _, meaning := range lookup.Meanings {
+				meanings = append(meanings, meaning.String())
+			}
 
-		translation = translation + strings.Join(meanings, ", ")
+			translation := ""
+			if lookup.Transcript != "" {
+				translation = "[" + lookup.Transcript + "] "
+			}
 
-		if !silent {
-			fmt.Println(translation)
+			translation = translation + strings.Join(meanings, ", ")
+
+			if !useJSON && !silent {
+				fmt.Println(translation)
+			}
 		}
 
 		if dry {
@@ -217,7 +230,7 @@ func addCard(lang string, creds string, user string, pass string,
 		}
 
 		if !found {
-			if silent {
+			if silent && !useJSON {
 				fmt.Println(translation)
 			}
 
