@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -58,9 +57,11 @@ func main() {
 	lang := flags.String("lang", "en-ru", "translation direction")
 	creds := flags.String("creds", os.Getenv("HOME")+"/.config/runki/creds",
 		"path to creds file")
-	user := flags.String("user", "", "ankiweb username")
-	pass := flags.String("pass", "", "ankiweb password")
-	deck := flags.String("deck", "Default", "deck to add")
+	chatgptApiKey := flags.String("chatgpt-api-key", "", "chat gpt api key")
+	// user := flags.String("user", "", "ankiweb username")
+	// pass := flags.String("pass", "", "ankiweb password")
+	deckId := flags.Int64("deck-id", 0, "deck to add")
+	notetypeId := flags.Int64("notetype-id", 0, "deck to add")
 	dry := flags.Bool("dry", false, "dry run (do not alter anki db)")
 	cut := flags.Int("cut", 0, "stop processing after N non-unique words found")
 	silent := flags.Bool("silent", false, "silent, do not print translation "+
@@ -71,7 +72,17 @@ func main() {
 
 	flags.Parse(append(conf, os.Args[1:]...))
 
-	addCard(*lang, *creds, *user, *pass, *deck, *dry, *cut, *silent, *useJSON)
+	addCard(
+		*lang,
+		*creds,
+		*chatgptApiKey,
+		*deckId,
+		*notetypeId,
+		*dry,
+		*cut,
+		*silent,
+		*useJSON,
+	)
 }
 
 func displayHelp() {
@@ -91,17 +102,20 @@ DESCRIPTION
 		for detailed description. Default: en-ru.
 
 	--creds
-		Creds file to cache cookies to. If you changed password or in case of
-		authentification failure, delete this file. Default: ~/.config/runki/creds.
+		The cookie stolen from the ankiweb session.
 
-	--user
-		Your username to http://ankiweb.net.
+	--chatgpt-api-key
+		ChatGPT API key.
 
-	--pass
-		Your password to http://ankiweb.net.
+	--deck-id
+		Id of the deck to add the card to. To find out this value, add the card via
+		the web ui, check the stack trace of the network request, set breakpoint to
+		stop at the request time, and then, debug the value inside the code. The
+		process is tricky and the improvements for it are welcome.
 
-	--deck
-		To add card to. Default: Default.
+	--notetype-id
+		Id of the notetype to add the card to. Can be found in the same way as the
+		deck id.
 
 	--dry
 		Do not add card, just show translation.
@@ -126,11 +140,8 @@ EXAMPLES
 	echo test | runki --user user@example.com --pass PASSWORD
 
 	# ~/.config/runki/runkirc
-	--user
-		user@example.com
-
-	--pass
-		PASSWORD
+	--creds
+	has_auth=1; ankiweb=eyJvcCI6ImNrIiwiaWF0IjoxNzA4ODA2XXX
 
 SEE ALSO
 	http://ankiweb.net
@@ -146,105 +157,64 @@ VERSION
 `)
 }
 
-func addCard(lang string, creds string, user string, pass string,
-	deck string, dry bool, cut int, silent bool, useJSON bool) {
-
-	ya := NewYandexProvider(lang, "", UnlimitedSynonyms)
+func addCard(
+	lang string,
+	creds string,
+	chatgptApiKey string,
+	deckId int64,
+	notetypeId int64,
+	dry bool,
+	cut int,
+	silent bool,
+	useJSON bool,
+) {
 	anki := NewAnkiAccount()
 
-	shouldAuth, err := anki.Load(creds)
-	if err != nil {
-		log.Fatalf("can't read from creds file:", err)
-	}
+	// shouldAuth, err := anki.Load(creds)
+	// if err != nil {
+	// 	log.Fatalf("can't read from creds file:", err)
+	// }
 
-	if !dry && shouldAuth {
-		err := anki.WebLogin(user, pass)
-		if err != nil {
-			log.Fatalf("can't login to ankiweb", err.Error())
-		}
-	}
+	// if !dry && shouldAuth {
+	// 	err := anki.WebLogin(user, pass)
+	// 	if err != nil {
+	// 		log.Fatalf("can't login to ankiweb", err.Error())
+	// 	}
+	// }
 
-	err = anki.Save(creds)
-	if err != nil {
-		log.Fatalf("can't save creds file:", err.Error())
-	}
+	// err = anki.Save(creds)
+	// if err != nil {
+	// 	log.Fatalf("can't save creds file:", err.Error())
+	// 	return
+	// }
 
 	stdin := bufio.NewReader(os.Stdin)
-	foundStreak := 0
 	for {
 		line, err := stdin.ReadString('\n')
 		if err != nil {
 			break
 		}
 
-		unknown := strings.TrimSpace(line)
+		unknown, translation, err := requestCardFromChatGpt(
+			chatgptApiKey,
+			strings.TrimSpace(line),
+		)
 
-		lookup, err := ya.Lookup(unknown)
 		if err != nil {
-			log.Fatalf(err.Error())
-		}
-
-		if lookup == nil {
-			if !silent {
-				fmt.Fprintf(os.Stderr,
-					"<"+unknown+": no translation found>")
-			}
-
-			continue
-		}
-
-		if useJSON {
-			encoder := json.NewEncoder(os.Stdout)
-			err = encoder.Encode(lookup)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-
-		var translation string
-		if !useJSON || !dry {
-			meanings := []string{}
-			for _, meaning := range lookup.Meanings {
-				meanings = append(meanings, meaning.String())
-			}
-
-			translation := ""
-			if lookup.Transcript != "" {
-				translation = "[" + lookup.Transcript + "] "
-			}
-
-			translation = translation + strings.Join(meanings, ", ")
-
-			if !useJSON && !silent {
-				fmt.Println(translation)
-			}
+			log.Fatalf("failed to get translation from chat gpt", err.Error())
 		}
 
 		if dry {
 			continue
 		}
 
-		found, err := anki.Search(unknown)
+		if silent && !useJSON {
+			fmt.Println(translation)
+		}
+
+		err = anki.Add(creds, deckId, notetypeId, unknown, translation)
 		if err != nil {
-			log.Fatalf(err.Error())
-		}
-
-		if !found {
-			if silent && !useJSON {
-				fmt.Println(translation)
-			}
-
-			foundStreak = 0
-			err = anki.Add(deck, unknown, translation)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			foundStreak += 1
-		}
-
-		if foundStreak >= cut && cut > 0 {
-			log.Fatalf("stopping after %d consequent non-unique words", cut)
+			log.Fatal(err)
 		}
 	}
 }

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option go_package = "./messages";
+
+message AddOrUpdateRequest_AddMode {
+  int64 notetype_id = 1;
+  int64 deck_id = 2;
+}
+
+message AddOrUpdateRequest_EditMode {
+  int64 note_id = 1;
+}
+
+message Message {
+  repeated string fields = 1;
+  string tags = 2;
+  oneof mode {
+    AddOrUpdateRequest_AddMode add = 3;
+    AddOrUpdateRequest_EditMode edit = 4;
+  }
+}
